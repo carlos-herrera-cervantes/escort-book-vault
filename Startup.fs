@@ -6,15 +6,24 @@ open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
+open Microsoft.Extensions.Configuration
+open EscortBookVault.Extensions.AzureTableExtensions
+open EscortBookVault.Extensions.AutoMapperExtensions
 
-type Startup() =
+type Startup private () =
 
-    // This method gets called by the runtime. Use this method to add services to the container.
-    // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
+    member val Configuration : IConfiguration = null with get, set
+
+    new (configuration: IConfiguration) as this = Startup() then
+        this.Configuration <- configuration
+
     member this.ConfigureServices(services: IServiceCollection) =
-        ()
+        services.AddAutoMapperConfiguration(this.Configuration) |> ignore
+        services.AddControllers() |> ignore
+        services.AddAzureTableStorage(fun options ->
+            options.AzureStorageConnectionString <- this.Configuration.GetSection("ConnectionStrings").GetSection("TableStorge").Value
+        ) |> ignore
 
-    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     member this.Configure(app: IApplicationBuilder, env: IWebHostEnvironment) =
         if env.IsDevelopment() then
             app.UseDeveloperExceptionPage() |> ignore
