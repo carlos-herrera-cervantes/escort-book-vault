@@ -39,7 +39,7 @@ type SecretController private () =
     member this.GetByRowKeyAsync ([<FromQuery>] query: RowKeyDto) =
         async {
             let! cloudTable = this._azureTableClient.CreateIfNotExists(sprintf "%ss" (typeof<Secret>.Name.ToLowerInvariant()))
-            let filter = TableQuery<Secret>().Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, "messenger-sqs-queue"))
+            let filter = TableQuery<Secret>().Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, query.RowKey))
             let! finded = cloudTable.ExecuteQuerySegmentedAsync(filter, null) |> Async.AwaitTask
             let response = SuccessSecretResponse()
             
