@@ -3,6 +3,8 @@ namespace EscortBookVault.Controllers
 open System
 open Microsoft.AspNetCore.Mvc
 open AutoMapper
+open System.Linq
+open Microsoft.Azure.Cosmos.Table
 open EscortBookVault.Repositories
 open EscortBookVault.Models
 open EscortBookVault.Extensions.AzureTableExtensions
@@ -21,7 +23,7 @@ type SecretController private () =
         this._azureTableClient <- azureTableClient
         this._mapper <- mapper
 
-    [<HttpGet("{one}")>]
+    [<HttpGet("one")>]
     member this.GetOneAsync ([<FromQuery>] query: PointQueryDto) =
         async {
             let! cloudTable = this._azureTableClient.CreateIfNotExists(sprintf "%ss" (typeof<Secret>.Name.ToLowerInvariant()))
@@ -29,6 +31,19 @@ type SecretController private () =
             let response = SuccessSecretResponse()
             
             response.Data <- this._mapper.Map<SingleSecretDto>(finded)
+
+            return response |> this.Ok :> IActionResult
+        }
+
+    [<HttpGet("row-key")>]
+    member this.GetByRowKeyAsync ([<FromQuery>] query: RowKeyDto) =
+        async {
+            let! cloudTable = this._azureTableClient.CreateIfNotExists(sprintf "%ss" (typeof<Secret>.Name.ToLowerInvariant()))
+            let filter = TableQuery<Secret>().Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, "messenger-sqs-queue"))
+            let! finded = cloudTable.ExecuteQuerySegmentedAsync(filter, null) |> Async.AwaitTask
+            let response = SuccessSecretResponse()
+            
+            response.Data <- this._mapper.Map<SingleSecretDto>(finded.Results.First())
 
             return response |> this.Ok :> IActionResult
         }
@@ -48,7 +63,7 @@ type SecretController private () =
             return this.Created("", response) :> IActionResult
         }
 
-    [<HttpPatch("{one}")>]
+    [<HttpPatch("one")>]
     member this.UpdateOneAsync ([<FromQuery>] query: PointQueryDto, [<FromBody>] body: UpdateSecretDto) =
         async {
             let! cloudTable = this._azureTableClient.CreateIfNotExists(sprintf "%ss" (typeof<Secret>.Name.ToLowerInvariant()))
@@ -71,7 +86,7 @@ type SecretController private () =
             return response |> this.Ok :> IActionResult
         }
 
-    [<HttpDelete("{one}")>]
+    [<HttpDelete("one")>]
     member this.DeleteOneAsync ([<FromQuery>] query: PointQueryDto) =
         async {
             let! cloudTable = this._azureTableClient.CreateIfNotExists(sprintf "%ss" (typeof<Secret>.Name.ToLowerInvariant()))
