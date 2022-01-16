@@ -9,3 +9,8 @@ type PointQueryDto () =
 
     [<Required>]
     member val RowKey : string = null with get, set
+
+type RowKeyDto () =
+    
+    [<Required>]
+    member val RowKey : string = null with get, set
