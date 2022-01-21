@@ -41,11 +41,13 @@ type SecretController private () =
             let! cloudTable = this._azureTableClient.CreateIfNotExists(sprintf "%ss" (typeof<Secret>.Name.ToLowerInvariant()))
             let filter = TableQuery<Secret>().Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, query.RowKey))
             let! finded = cloudTable.ExecuteQuerySegmentedAsync(filter, null) |> Async.AwaitTask
-            let response = SuccessSecretResponse()
-            
-            response.Data <- this._mapper.Map<SingleSecretDto>(finded.Results.First())
 
-            return response |> this.Ok :> IActionResult
+            match finded.Count() with
+                | 0 -> return this.NotFound() :> IActionResult
+                | _ ->
+                    let response = SuccessSecretResponse()
+                    response.Data <- this._mapper.Map<SingleSecretDto>(finded.Results.First())
+                    return response |> this.Ok :> IActionResult
         }
 
     [<HttpPost>]
